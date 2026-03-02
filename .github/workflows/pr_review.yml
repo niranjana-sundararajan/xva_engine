@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Requires repository setting:
+#   Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests" ✓
+# Requires Copilot Code Review enabled:
+#   Settings > Code Security > Copilot code review ✓
+
 permissions:
   contents: read
   pull-requests: write
@@ -28,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
-      # Run tests, capturing output and exit code separately
+      # ── 1. Run tests ────────────────────────────────────────────────────
       - name: Run test suite
         id: tests
         run: |
@@ -37,25 +42,18 @@ jobs:
           echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
           set -e
 
-      # Parse test summary line: "298 passed in 3.62s"
       - name: Parse test results
         id: parse
         run: |
-          SUMMARY=$(grep -E "^[0-9]+ passed|^[0-9]+ failed|FAILED|ERROR" test_output.txt | tail -5 || echo "No summary found")
           TOTAL=$(grep -oP '^\d+ passed' test_output.txt | grep -oP '\d+' || echo "0")
           FAILED=$(grep -oP '\d+ failed' test_output.txt | grep -oP '\d+' || echo "0")
           COVERAGE=$(grep -oP 'Total coverage: \K[\d.]+' test_output.txt || echo "unknown")
           REQUIRED=$(grep -oP 'Required test coverage of \K[\d.]+' test_output.txt || echo "100")
+          echo "total=${TOTAL}"        >> $GITHUB_OUTPUT
+          echo "failed=${FAILED}"      >> $GITHUB_OUTPUT
+          echo "coverage=${COVERAGE}"  >> $GITHUB_OUTPUT
+          echo "required=${REQUIRED}"  >> $GITHUB_OUTPUT
 
-          echo "total=${TOTAL}"      >> $GITHUB_OUTPUT
-          echo "failed=${FAILED}"    >> $GITHUB_OUTPUT
-          echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
-          echo "required=${REQUIRED}" >> $GITHUB_OUTPUT
-          echo "summary<<EOF"         >> $GITHUB_OUTPUT
-          echo "${SUMMARY}"           >> $GITHUB_OUTPUT
-          echo "EOF"                  >> $GITHUB_OUTPUT
-
-      # Collect failed test details (if any)
       - name: Collect failure details
         id: failures
         if: steps.tests.outputs.exit_code != '0'
@@ -65,59 +63,152 @@ jobs:
           echo "${DETAILS}"    >> $GITHUB_OUTPUT
           echo "EOF"           >> $GITHUB_OUTPUT
 
-      # Post the review via GitHub API
-      - name: Post PR review
+      # ── 2. Request Copilot review ───────────────────────────────────────
+      - name: Request Copilot review
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const exitCode   = '${{ steps.tests.outputs.exit_code }}';
-            const total      = '${{ steps.parse.outputs.total }}';
-            const failed     = '${{ steps.parse.outputs.failed }}';
-            const coverage   = '${{ steps.parse.outputs.coverage }}';
-            const required   = '${{ steps.parse.outputs.required }}';
-            const summary    = `${{ steps.parse.outputs.summary }}`;
-            const failures   = `${{ steps.failures.outputs.details || '' }}`;
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner:       context.repo.owner,
+                repo:        context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                reviewers:   ['copilot-pull-request-reviewer[bot]'],
+              });
+              console.log('Copilot review requested successfully.');
+            } catch (e) {
+              // Non-fatal: Copilot Code Review may not be enabled on this repo
+              console.log('Could not request Copilot review:', e.message);
+            }
 
-            const passed = (exitCode === '0');
-            const coverageOk = (coverage === 'unknown') || (parseFloat(coverage) >= parseFloat(required));
-            const allGood = passed && coverageOk;
+      # ── 3. Poll for Copilot review (up to 10 minutes) ──────────────────
+      - name: Wait for Copilot review
+        id: copilot
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const MAX_MS   = 10 * 60 * 1000;  // 10 minutes
+            const POLL_MS  = 30 * 1000;        // poll every 30 s
+            const start    = Date.now();
 
-            // ── build body ────────────────────────────────────────────────
-            const status = allGood
-              ? '## Automated Review: APPROVED\n\nAll checks passed.'
-              : '## Automated Review: CHANGES REQUESTED\n\nOne or more checks failed.';
+            while (Date.now() - start < MAX_MS) {
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner:       context.repo.owner,
+                repo:        context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              });
 
-            const testSection = `
-            ### Test Results
-            | Metric | Value |
-            |--------|-------|
-            | Tests passed | ${total} |
-            | Tests failed | ${failed} |
-            | Branch coverage | ${coverage === 'unknown' ? 'n/a' : coverage + '%'} |
-            | Required coverage | ${required}% |
-            | Overall | ${allGood ? '✅ PASS' : '❌ FAIL'} |
-            `;
+              // Match any Copilot-authored review (login contains "copilot", Bot type)
+              const copilotReviews = reviews.filter(r =>
+                r.user && (
+                  r.user.login.toLowerCase().includes('copilot') ||
+                  (r.user.type === 'Bot' && r.user.login.toLowerCase().includes('copilot'))
+                )
+              );
 
+              if (copilotReviews.length > 0) {
+                const latest = copilotReviews[copilotReviews.length - 1];
+                console.log(`Copilot review found: state=${latest.state}, comments=${latest.body?.length ?? 0} chars`);
+                core.setOutput('state',    latest.state);       // APPROVED | CHANGES_REQUESTED | COMMENTED
+                core.setOutput('body',     latest.body ?? '');
+                core.setOutput('found',    'true');
+                core.setOutput('comments', String(copilotReviews.length));
+                return;
+              }
+
+              const elapsed = Math.round((Date.now() - start) / 1000);
+              console.log(`No Copilot review yet — ${elapsed}s elapsed, retrying in ${POLL_MS/1000}s…`);
+              await new Promise(res => setTimeout(res, POLL_MS));
+            }
+
+            console.log('Timed out waiting for Copilot review — treating as no review.');
+            core.setOutput('state',    'PENDING');
+            core.setOutput('body',     '');
+            core.setOutput('found',    'false');
+            core.setOutput('comments', '0');
+
+      # ── 4. Post automated review decision ──────────────────────────────
+      - name: Post automated review
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const exitCode      = '${{ steps.tests.outputs.exit_code }}';
+            const total         = '${{ steps.parse.outputs.total }}';
+            const failed        = '${{ steps.parse.outputs.failed }}';
+            const coverage      = '${{ steps.parse.outputs.coverage }}';
+            const required      = '${{ steps.parse.outputs.required }}';
+            const failures      = `${{ steps.failures.outputs.details || '' }}`;
+            const copilotState  = '${{ steps.copilot.outputs.state }}';
+            const copilotFound  = '${{ steps.copilot.outputs.found }}';
+            const copilotBody   = `${{ steps.copilot.outputs.body }}`;
+
+            const testsPassed   = exitCode === '0';
+            const coverageOk    = coverage === 'unknown'
+                                  ? false
+                                  : parseFloat(coverage) >= parseFloat(required);
+            const copilotOk     = copilotState !== 'CHANGES_REQUESTED';  // APPROVED or COMMENTED or PENDING = ok to pass
+
+            const allGood = testsPassed && coverageOk && copilotOk;
+
+            // ── reason string ──
+            const reasons = [];
+            if (!testsPassed)  reasons.push(`${failed} test(s) failed`);
+            if (!coverageOk)   reasons.push(`coverage ${coverage}% < required ${required}%`);
+            if (!copilotOk)    reasons.push('Copilot requested changes');
+
+            // ── test table ──
+            const testTable = [
+              '### Test Results',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Tests passed     | ${total} |`,
+              `| Tests failed     | ${failed} |`,
+              `| Branch coverage  | ${coverage === 'unknown' ? 'n/a' : coverage + '%'} |`,
+              `| Required         | ${required}% |`,
+              `| Result           | ${testsPassed && coverageOk ? '✅ PASS' : '❌ FAIL'} |`,
+            ].join('\n');
+
+            // ── Copilot section ──
+            let copilotSection = '### Copilot Code Review\n';
+            if (!copilotFound || copilotFound === 'false') {
+              copilotSection += '_Copilot review not completed within the polling window._';
+            } else if (copilotState === 'APPROVED') {
+              copilotSection += '✅ Copilot approved with no blocking comments.';
+            } else if (copilotState === 'CHANGES_REQUESTED') {
+              copilotSection += '❌ Copilot requested changes.\n\n';
+              if (copilotBody) {
+                copilotSection += `<details>\n<summary>Copilot comments</summary>\n\n${copilotBody}\n\n</details>`;
+              }
+            } else {
+              copilotSection += `ℹ️ Copilot left comments (state: ${copilotState}) — no blocking changes requested.`;
+            }
+
+            // ── failure details ──
             const failSection = failures
-              ? `\n<details>\n<summary>Failure details</summary>\n\n\`\`\`\n${failures}\n\`\`\`\n</details>`
+              ? `\n<details>\n<summary>Test failure details</summary>\n\n\`\`\`\n${failures}\n\`\`\`\n</details>`
               : '';
 
-            const checklist = `
-            ### Review Checklist
-            - [${passed ? 'x' : ' '}] All tests pass
-            - [${coverageOk ? 'x' : ' '}] Branch coverage ≥ ${required}%
-            - [x] Code targets \`main\` branch
-            - [x] CI workflow present
-            `;
+            // ── decision ──
+            const headline = allGood
+              ? '## Automated Review: APPROVED\n\nAll checks passed — tests green, coverage at 100%, Copilot has no blocking comments.'
+              : `## Automated Review: CHANGES REQUESTED\n\nBlocking issues: **${reasons.join('; ')}**.`;
 
-            const body = [status, testSection, checklist, failSection].join('\n');
+            const checklist = [
+              '### Checklist',
+              `- [${testsPassed      ? 'x' : ' '}] All tests pass`,
+              `- [${coverageOk       ? 'x' : ' '}] Branch coverage ≥ ${required}%`,
+              `- [${copilotOk        ? 'x' : ' '}] Copilot review: no blocking changes`,
+            ].join('\n');
 
-            // ── submit review ─────────────────────────────────────────────
+            const body = [headline, testTable, copilotSection, checklist, failSection].join('\n\n');
+
             await github.rest.pulls.createReview({
               owner:       context.repo.owner,
               repo:        context.repo.repo,
               pull_number: context.payload.pull_request.number,
-              body:        body,
-              event:       allGood ? 'APPROVE' : 'REQUEST_CHANGES',
+              body,
+              event: allGood ? 'APPROVE' : 'REQUEST_CHANGES',
             });
