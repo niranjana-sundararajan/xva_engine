@@ -1,0 +1,90 @@
+[
+    {
+        "entity_id": "CPTY-1",
+        "recovery_rate": 0.40,
+        "points": [
+            {
+                "tenor": 0,
+                "survival_prob": 1.0000
+            },
+            {
+                "tenor": 365,
+                "survival_prob": 0.9800
+            },
+            {
+                "tenor": 730,
+                "survival_prob": 0.9600
+            },
+            {
+                "tenor": 1825,
+                "survival_prob": 0.9000
+            }
+        ]
+    },
+    {
+        "entity_id": "CPTY-2",
+        "recovery_rate": 0.35,
+        "points": [
+            {
+                "tenor": 0,
+                "survival_prob": 1.0000
+            },
+            {
+                "tenor": 365,
+                "survival_prob": 0.9700
+            },
+            {
+                "tenor": 730,
+                "survival_prob": 0.9400
+            },
+            {
+                "tenor": 1825,
+                "survival_prob": 0.8500
+            }
+        ]
+    },
+    {
+        "entity_id": "CPTY-3",
+        "recovery_rate": 0.40,
+        "points": [
+            {
+                "tenor": 0,
+                "survival_prob": 1.0000
+            },
+            {
+                "tenor": 365,
+                "survival_prob": 0.9900
+            },
+            {
+                "tenor": 730,
+                "survival_prob": 0.9800
+            },
+            {
+                "tenor": 1825,
+                "survival_prob": 0.9500
+            }
+        ]
+    },
+    {
+        "entity_id": "BANK",
+        "recovery_rate": 0.40,
+        "points": [
+            {
+                "tenor": 0,
+                "survival_prob": 1.0000
+            },
+            {
+                "tenor": 365,
+                "survival_prob": 0.9900
+            },
+            {
+                "tenor": 730,
+                "survival_prob": 0.9850
+            },
+            {
+                "tenor": 1825,
+                "survival_prob": 0.9600
+            }
+        ]
+    }
+]

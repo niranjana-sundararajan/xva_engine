@@ -1,0 +1,7 @@
+trade_id,trade_type,netting_set_id,notional,maturity_date,start_date,receive_fixed,fixed_rate,payment_frequency
+ZCB-1,ZCB,NS-CPTY1,1000000,730,,,, 
+IRS-1,IRS,NS-CPTY1,1000000,1825,0,False,0.025,6
+ZCB-2,ZCB,NS-CPTY2,2000000,365,,,,
+IRS-2,IRS,NS-CPTY2,500000,730,0,True,0.030,6
+IRS-3,IRS,NS-CPTY2,750000,1825,0,False,0.028,3
+ZCB-3,ZCB,NS-CPTY3,5000000,1825,,,,

@@ -1,0 +1,16 @@
+{
+    "hw_params": {
+        "mean_reversion": 0.05,
+        "volatility": 0.01
+    },
+    "mc_config": {
+        "num_paths": 5000,
+        "seed": 42,
+        "batch_size": 1000,
+        "dense_grid_frequency": null
+    },
+    "base_currency": "USD",
+    "funding_spread": 0.01,
+    "cost_of_capital": 0.08,
+    "collateral_mode": "none"
+}
