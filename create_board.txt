@@ -1,0 +1,92 @@
+
+=== Step 1: Get user node ID ===
+User: niranjana-sundararajan, node_id: MDQ6VXNlcjg4NTY5ODU1
+
+=== Step 2: Create Project v2 ===
+Project created: #4 at https://github.com/users/niranjana-sundararajan/projects/4
+Project node_id: PVT_kwHOBUd3_84BQhQ_
+
+=== Step 3: Get Status field and configure options ===
+Status field id: PVTSSF_lAHOBUd3_84BQhQ_zg-nU5g
+Current options: ['Todo', 'In Progress', 'Done']
+
+=== Step 4: Fetch all open issues (no PRs) ===
+Found 61 issues
+
+=== Step 5: Add 61 issues to project ===
+  [ 1/61] Added #4: Multi-curve framework: OIS discount + SOFR/IBOR projection c
+  [ 2/61] Added #5: Curve interpolation: monotone convex, cubic spline, Bessel/H
+  [ 3/61] Added #6: Tenor basis spread curves and cross-currency (xccy) discount
+  [ 4/61] Added #7: Volatility surfaces: swaption vol cube + cap/floor surface (
+  [ 5/61] Added #8: Inflation and dividend curves (CPI zero-coupon, continuous +
+  [ 6/61] Added #9: Curve scenario/bumping API: parallel shift, twist, butterfly
+  [ 7/61] Added #10: IR products: OIS swap (SOFR compounded in arrears) and basis
+  [ 8/61] Added #11: IR products: Cap/Floor (caplet strip, Black + Bachelier pric
+  [ 9/61] Added #12: IR products: European swaption — analytical HW1F (Jamshidian
+  [10/61] Added #13: Implement Hull-White 2F (G2++) short-rate model with analyti
+  [11/61] Added #14: Implement CIR++ model (non-negative rates, closed-form bond 
+  [12/61] Added #15: Automatic calibration: HW1F and G2++ to ATM swaption vol sur
+  [13/61] Added #16: Variance reduction: antithetic variates
+  [14/61] Added #17: Quasi-Monte Carlo simulation: Sobol low-discrepancy sequence
+  [15/61] Added #18: Multi-factor correlated simulation via Cholesky decompositio
+  [16/61] Added #19: Convergence tests: assert CVA standard error scales as O(1/s
+  [17/61] Added #20: IR products: Cross-currency swap (CCS) with MTM reset
+  [18/61] Added #21: IR products: Bermudan swaption via Longstaff-Schwartz Americ
+  [19/61] Added #22: FX products: FX forward + European FX option (Garman-Kohlhag
+  [20/61] Added #23: FX products: FX barrier option and FX variance swap
+  [21/61] Added #24: Equity products: Equity forward / TRS + European equity opti
+  [22/61] Added #25: Equity products: Asian option, equity variance swap, equity 
+  [23/61] Added #26: Implement SABR volatility model (smile-consistent per expiry
+  [24/61] Added #27: Hybrid model: Hull-White + GBM (correlated rates + equity)
+  [25/61] Added #28: Hybrid model: HW domestic + HW foreign + GBM FX (cross-curre
+  [26/61] Added #30: Full CSA model: threshold, MTA, independent amount, rounding
+  [27/61] Added #32: ISDA SIMM initial margin model (sensitivity-based, 6 risk cl
+  [28/61] Added #34: PFE profiles (95th/99th percentile) and Basel III EPE / EEPE
+  [29/61] Added #38: Full ISDA SIMM MVA with nested Monte Carlo and dynamic IM di
+  [30/61] Added #40: Asymmetric FVA: separate FBA (funding benefit) vs FCA (fundi
+  [31/61] Added #42: SA-CCR EAD: replace current RWA proxy in KVA (BCBS CRE50)
+  [32/61] Added #44: SA-CVA capital charge (FRTB sensitivity-based approach, BCBS
+  [33/61] Added #45: KVA under Basel IV: 72.5% output floor + hurdle rate optimis
+  [34/61] Added #47: CVA Greeks: IR delta, credit spread delta, FX delta, vol veg
+  [35/61] Added #48: Implement JCIR++ hybrid model (jump-to-default credit intens
+  [36/61] Added #50: Wrong-way risk adjusted CVA: correlated exposure and counter
+  [37/61] Added #51: Implement ColVA + HVA + incremental XVA with Euler allocatio
+  [38/61] Added #53: Parallel netting-set processing via ProcessPoolExecutor
+  [39/61] Added #55: Incremental computation: cache curves/grids and recompute on
+  [40/61] Added #58: FastAPI REST API wrapper: async JSON microservice + Docker d
+  [41/61] Added #61: FpML v5.12 parser: map ISDA FpML trade representations to in
+  [42/61] Added #62: Arrow/Parquet streaming trade store + Pydantic v2 strict mod
+  [43/61] Added #64: Protocol interface definitions: Pricer, RateModel, Collatera
+  [44/61] Added #69: mypy --strict compliance across full codebase
+  [45/61] Added #71: Structured logging (structlog JSON) + OpenTelemetry distribu
+  [46/61] Added #73: Dockerfile + docker-compose + GitHub Actions CD pipeline on 
+  [47/61] Added #75: Portfolio-level XVA dashboard with counterparty heatmap
+  [48/61] Added #77: Scenario manager: save/load/compare up to 4 named scenarios 
+  [49/61] Added #79: 3D EE surface chart (time x path percentile) using Plotly 3D
+  [50/61] Added #81: Editable trade blotter + inline market data editor in Stream
+  [51/61] Added #82: XVA attribution waterfall: portfolio -> netting set -> trade
+  [52/61] Added #84: Self-contained HTML report with embedded Plotly charts + ful
+  [53/61] Added #86: Regulatory report templates: FRTB-CVA sensitivity, SA-CCR EA
+  [54/61] Added #88: Excel workbook export (openpyxl) + LaTeX/PDF export
+  [55/61] Added #90: [Research] Neural network SIMM proxy for intraday MVA (repla
+  [56/61] Added #92: [Research] Signature-based exposure model: path signature fe
+  [57/61] Added #93: GPU acceleration: CuPy pathwise pricing (10-100x speedup tar
+  [58/61] Added #94: Property-based testing with Hypothesis: curves, schedules, p
+  [59/61] Added #95: Golden-file regression test suite for reference portfolio
+  [60/61] Added #97: Performance benchmarks with pytest-benchmark + runtime regre
+  [61/61] Added #99: Mutation testing with mutmut: verify test suite kills all si
+Added 61 items to project
+
+=== Step 6: Set all items to Backlog status ===
+Using status option: 'Todo' (id: f75ad846)
+  ... 10/61 done
+  ... 20/61 done
+  ... 30/61 done
+  ... 40/61 done
+  ... 50/61 done
+  ... 60/61 done
+Set Backlog status on 61/61 items
+
+=== DONE ===
+Project board: https://github.com/users/niranjana-sundararajan/projects/4
+Issues added: 61

@@ -30,6 +30,8 @@ The initial discount curve $P(0, t)$ is supplied as a set of pillar points $(t_i
 
 $$\ln P(0, t) = \ln P(0, t_i) + \frac{t - t_i}{t_{i+1} - t_i} \left[ \ln P(0, t_{i+1}) - \ln P(0, t_i) \right]$$
 
+For times $t$ beyond the last pillar, the curve assumes a **flat forward rate** (log-linear extrapolation). For $t=0$, $P(0,0)=1$ is assumed if not provided.
+
 The continuously-compounded zero rate is:
 
 $$r(0, t) = -\frac{\ln P(0, t)}{t / 365}$$
@@ -49,11 +51,17 @@ Survival probability $S(t)$ for each entity (counterparty, bank) is also log-lin
 
 $$S(t) = \exp\!\left(-\int_0^t h(u)\,du\right)$$
 
-where $h(t)$ is the instantaneous hazard rate (extracted numerically from pillar survival probabilities).
+where $h(t)$ is the instantaneous hazard rate. Log-linear interpolation of $S(t)$ corresponds to a **piecewise-constant hazard rate** between pillars. For extrapolation beyond the last pillar, a **flat hazard rate** ($S(t)$ decays log-linearly) is assumed.
 
-**Marginal probability of default** between $t_{i-1}$ and $t_i$ (`market/credit.py`):
+**Marginal probability of default** (unconditional) between $t_{i-1}$ and $t_i$ (`market/credit.py`):
 
-$$\Delta PD(t_{i-1}, t_i) = S(t_{i-1}) - S(t_i) = 1 - \frac{S(t_i)}{S(t_{i-1})}$$
+$$\Delta PD(t_{i-1}, t_i) = S(t_{i-1}) - S(t_i)$$
+
+The corresponding **conditional** probability of default given survival to $t_{i-1}$ is:
+
+$$PD^{\text{cond}}(t_{i-1}, t_i) = 1 - \frac{S(t_i)}{S(t_{i-1})}$$
+
+`CreditCurveModel.marginal_pd()` implements the unconditional definition.
 
 ---
 
@@ -146,6 +154,8 @@ $$V_{ZCB}(t_i, j) = \begin{cases} N \cdot P\!\left(\tfrac{t_i}{365},\, \tfrac{T}
 
 **Output:** matrix $\mathbf{V}_{NS} \in \mathbb{R}^{|\mathcal{T}| \times M}$
 
+*Note on IRS Float Leg Valuation:* Float leg pricing within the Hull-White framework is performed using the model-consistent forward rates (or exactly through the equivalent par-bond approximation $N(1 - P(t,T))$ where applicable), ensuring consistent valuation under the $x_t$ paths.
+
 ---
 
 ## 6. Collateral (`exposure/collateral.py`)
@@ -157,6 +167,8 @@ Given a CSA, the collateral held $C(t, \omega)$ reduces effective exposure:
 | `none`       | $0$                                                              |
 | `perfect_vm` | $V_{NS}(t, \omega)$ (full variation margin)                      |
 | `threshold`  | $\max(V_{NS}(t,\omega) - H, 0) - \max(-V_{NS}(t,\omega) - H, 0)$ |
+
+**Sign Convention**: $V_{NS}(t, \omega) > 0$ means the netting-set is an asset to the bank. $C(t, \omega) > 0$ means collateral is **held** by the bank (received from the counterparty), thereby reducing the bank's credit exposure. $C(t, \omega) < 0$ means collateral is posted by the bank.
 
 ---
 
@@ -194,7 +206,7 @@ $$\boxed{CVA = (1 - R_c)\sum_{i=1}^{n} P(0, t_i)\cdot EE(t_i)\cdot \Delta PD_c(t
 | ------------- | -------------------------------------------------------------------- |
 | $R_c$         | Counterparty recovery rate (e.g. 0.40)                               |
 | $P(0, t_i)$   | Risk-free discount factor to bucket end                              |
-| $EE(t_i)$     | Expected exposure at $t_i$                                           |
+| $EE(t_i)$     | **Undiscounted** expected credit exposure at $t_i$                     |
 | $\Delta PD_c$ | Counterparty marginal default probability in bucket $[t_{i-1}, t_i]$ |
 
 **For our ZCB:** CVA is positive since $EE > 0$ (we are always owed money if they default).
@@ -204,6 +216,8 @@ $$\boxed{CVA = (1 - R_c)\sum_{i=1}^{n} P(0, t_i)\cdot EE(t_i)\cdot \Delta PD_c(t
 The bilateral DVA captures the benefit from **our own potential default**:
 
 $$\boxed{DVA = (1 - R_b)\sum_{i=1}^{n} P(0, t_i)\cdot ENE(t_i)\cdot \Delta PD_b(t_{i-1}, t_i)}$$
+
+Where $ENE(t_i)$ is our **undiscounted** expected negative exposure to the counterparty.
 
 **For a ZCB held long:** ENE ≈ 0 because we always owe positive value, so DVA ≈ 0.
 

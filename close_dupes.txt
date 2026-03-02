@@ -1,0 +1,15 @@
+Fetching all open issues...
+Found 69 open issues
+Found 8 duplicate titles
+Will close 8 duplicate issues
+  [200] Closed #41 (duplicate of #11): IR products: Cap/Floor (caplet strip, Black + Bach
+  [200] Closed #39 (duplicate of #10): IR products: OIS swap (SOFR compounded in arrears)
+  [200] Closed #37 (duplicate of #9): Curve scenario/bumping API: parallel shift, twist,
+  [200] Closed #36 (duplicate of #8): Inflation and dividend curves (CPI zero-coupon, co
+  [200] Closed #35 (duplicate of #7): Volatility surfaces: swaption vol cube + cap/floor
+  [200] Closed #33 (duplicate of #6): Tenor basis spread curves and cross-currency (xccy
+  [200] Closed #31 (duplicate of #5): Curve interpolation: monotone convex, cubic spline
+  [200] Closed #29 (duplicate of #4): Multi-curve framework: OIS discount + SOFR/IBOR pr
+
+Done. Closed 8 duplicates.
+Remaining open issues: 62

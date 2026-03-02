@@ -5,7 +5,7 @@ import uuid
 import numpy as np
 from typing import Optional
 
-from .io.schemas import NettingSet, CurveSnapshot, CreditCurve, ModelConfig, ZCBTa, IRSTrade
+from .io.schemas import NettingSet, CurveSnapshot, CreditCurve, ModelConfig, ZCBTa, IRSTrade, CSA
 from .market.curve import DiscountCurve
 from .market.credit import CreditCurveModel
 from .products.zcb import ZcbPricer
@@ -58,9 +58,20 @@ class XVAEngine:
                 pass
 
         # CSA lookup
-        _extra = getattr(netting_set.trades[0], "model_extra", None)
-        self.csa = _extra.get("csa", None) if _extra else None  # pragma: no branch
-        self.csa_schema = None
+        if netting_set.trades:
+            _extra = getattr(netting_set.trades[0], "model_extra", None)
+            self.csa = _extra.get("csa", None) if _extra else None
+        else:
+            self.csa = None
+            
+        if self.csa:
+            self.csa_schema = CSA(**self.csa)
+        elif netting_set.csa_id:
+            # Provide a fallback strictly if a csa_id is given but no detail exists
+            self.csa_schema = CSA(csa_id=netting_set.csa_id, mode="perfect_vm")
+        else:
+            self.csa_schema = None
+
         self.run_id = str(uuid.uuid4())[:8]
 
     def run(self) -> dict:
@@ -122,7 +133,7 @@ class XVAEngine:
         # XVA computation
         cva_df = compute_cva(grid_days, EE, self.discount_curve, self.cpty_credit_model)
         dva_df = compute_dva(grid_days, ENE, self.discount_curve, self.bank_credit_model)
-        fva_df = compute_fva(grid_days, EE, C_paths, self.discount_curve, self.funding_spread)
+        fva_df = compute_fva(grid_days, EE, self.discount_curve, self.funding_spread)
         mva_df = compute_mva(grid_days, V_ns_paths, self.discount_curve, self.funding_spread,
                              im_model=PercentileIM())
         kva_df = compute_kva(grid_days, V_ns_paths, self.discount_curve, self.cost_of_capital,

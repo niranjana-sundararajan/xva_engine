@@ -41,7 +41,7 @@ class NettingSet(BaseModel):
     netting_set_id: str
     counterparty_id: str
     csa_id: Optional[str] = None
-    trades: List[Trade]
+    trades: List[Trade] = Field(..., min_length=1)
 
 # -----------------
 # MARKET DATA
@@ -69,7 +69,7 @@ class CreditCurve(BaseModel):
 # -----------------
 
 class HullWhiteParams(BaseModel):
-    mean_reversion: float = Field(..., ge=0.0)
+    mean_reversion: float = Field(..., gt=0.0)
     volatility: float = Field(..., ge=0.0)
 
 class MonteCarloConfig(BaseModel):
