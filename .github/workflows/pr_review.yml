@@ -132,6 +132,9 @@ jobs:
       # ── 4. Post automated review decision ──────────────────────────────
       - name: Post automated review
         uses: actions/github-script@v7
+        env:
+          FAILURES:     ${{ steps.failures.outputs.details || '' }}
+          COPILOT_BODY: ${{ steps.copilot.outputs.body }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -140,10 +143,10 @@ jobs:
             const failed        = '${{ steps.parse.outputs.failed }}';
             const coverage      = '${{ steps.parse.outputs.coverage }}';
             const required      = '${{ steps.parse.outputs.required }}';
-            const failures      = `${{ steps.failures.outputs.details || '' }}`;
+            const failures      = process.env.FAILURES     ?? '';
             const copilotState  = '${{ steps.copilot.outputs.state }}';
             const copilotFound  = '${{ steps.copilot.outputs.found }}';
-            const copilotBody   = `${{ steps.copilot.outputs.body }}`;
+            const copilotBody   = process.env.COPILOT_BODY ?? '';
 
             const testsPassed   = exitCode === '0';
             const coverageOk    = coverage === 'unknown'
