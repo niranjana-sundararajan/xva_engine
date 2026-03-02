@@ -1,5 +1,6 @@
 ﻿import numpy as np
 import polars as pl
+from typing import Union
 from scipy.special import ndtri
 from ..market.curve import DiscountCurve
 
@@ -35,7 +36,7 @@ def compute_mva(
     grid_days: np.ndarray,
     V_ns_paths: np.ndarray,
     discount_curve: DiscountCurve,
-    funding_spread: float,
+    funding_spread: Union[float, np.ndarray],
     im_model: InitialMarginModel = None
 ) -> pl.DataFrame:
     """
@@ -49,6 +50,10 @@ def compute_mva(
         spreads = np.full(len(grid_days), funding_spread)
     else:
         spreads = np.asarray(funding_spread)
+        if len(spreads) != len(grid_days):
+            raise ValueError(
+                f"funding_spread array length {len(spreads)} must match grid_days length {len(grid_days)}"
+            )
 
     mva_components = []
     for i in range(1, len(grid_days)):

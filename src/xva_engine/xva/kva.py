@@ -1,5 +1,6 @@
 ﻿import numpy as np
 import polars as pl
+from typing import Union
 from ..market.curve import DiscountCurve
 
 
@@ -32,7 +33,7 @@ def compute_kva(
     grid_days: np.ndarray,
     V_ns_paths: np.ndarray,
     discount_curve: DiscountCurve,
-    cost_of_capital: float,
+    cost_of_capital: Union[float, np.ndarray],
     capital_model: CapitalModel = None
 ) -> pl.DataFrame:
     """
@@ -46,6 +47,10 @@ def compute_kva(
         costs = np.full(len(grid_days), cost_of_capital)
     else:
         costs = np.asarray(cost_of_capital)
+        if len(costs) != len(grid_days):
+            raise ValueError(
+                f"cost_of_capital array length {len(costs)} must match grid_days length {len(grid_days)}"
+            )
 
     kva_components = []
     for i in range(1, len(grid_days)):

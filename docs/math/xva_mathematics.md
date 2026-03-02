@@ -206,7 +206,7 @@ $$\boxed{CVA = (1 - R_c)\sum_{i=1}^{n} P(0, t_i)\cdot EE(t_i)\cdot \Delta PD_c(t
 | ------------- | -------------------------------------------------------------------- |
 | $R_c$         | Counterparty recovery rate (e.g. 0.40)                               |
 | $P(0, t_i)$   | Risk-free discount factor to bucket end                              |
-| $EE(t_i)$     | **Undiscounted** expected credit exposure at $t_i$                     |
+| $EE(t_i)$     | **Undiscounted** expected credit exposure at $t_i$                   |
 | $\Delta PD_c$ | Counterparty marginal default probability in bucket $[t_{i-1}, t_i]$ |
 
 **For our ZCB:** CVA is positive since $EE > 0$ (we are always owed money if they default).
@@ -288,4 +288,4 @@ A positive Net XVA is a **cost** to the dealer (reduces mark-to-market profit).
 | $ENE(t)$              | `exposure/exposure.py`   | `calculate_exposures(V_ns, C)["ENE"]`              |
 | $CVA$                 | `xva/cva.py`             | `compute_cva(grid_days, EE, curve, cpty_credit)`   |
 | $DVA$                 | `xva/dva.py`             | `compute_dva(grid_days, ENE, curve, bank_credit)`  |
-| $FVA$                 | `xva/fva.py`             | `compute_fva(grid_days, EE, C, curve, s_f)`        |
+| $FVA$                 | `xva/fva.py`             | `compute_fva(grid_days, EE_net, curve, s_f)`       |
