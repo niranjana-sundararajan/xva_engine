@@ -6,6 +6,7 @@ tests/market/test_credit.py
 Tests CreditCurveModel construction, survival_prob() interpolation,
 marginal_pd() sign/magnitude, and vectorised array paths.
 """
+
 import numpy as np
 import pytest
 
@@ -13,7 +14,9 @@ from xva_engine.io.schemas import CreditCurve, CreditPoint
 from xva_engine.market.credit import CreditCurveModel
 
 
-def make_credit(entity_id: str, recovery: float, points: list[tuple[int, float]]) -> CreditCurveModel:
+def make_credit(
+    entity_id: str, recovery: float, points: list[tuple[int, float]]
+) -> CreditCurveModel:
     return CreditCurveModel(
         CreditCurve(
             entity_id=entity_id,
@@ -96,3 +99,33 @@ class TestMarginalPD:
         dpd = cpty_credit_model.marginal_pd(starts, ends)
         assert dpd.shape == (3,)
         assert np.all(dpd >= 0.0)
+
+
+class TestSurvivalProbEdgeCases:
+    """Covers single-pillar and left/right extrapolation branches."""
+
+    def test_single_pillar_scalar(self):
+        m = make_credit("SINGLE", 0.4, [(365, 0.95)])
+        assert abs(m.survival_prob(730) - 0.95) < 1e-9
+
+    def test_single_pillar_array(self):
+        m = make_credit("SINGLE", 0.4, [(365, 0.95)])
+        vals = m.survival_prob(np.array([0.0, 365.0, 730.0]))
+        assert np.allclose(vals, 0.95)
+
+    def test_left_extrapolation(self):
+        # Curve starts at t=30; querying t=0 exercises the left-slope branch.
+        m = make_credit("E", 0.4, [(30, 0.999), (365, 0.98)])
+        val = m.survival_prob(0)
+        assert 0.0 < val <= 1.0
+
+    def test_right_extrapolation(self, cpty_credit_model):
+        # Beyond last pillar (1825) exercises the right-slope branch.
+        val = cpty_credit_model.survival_prob(2190)
+        assert 0.0 < val < 1.0
+
+    def test_all_values_beyond_range_skips_inside_mask(self):
+        # Vector entirely > last pillar: inside_mask is all-False (50->58 branch).
+        m = make_credit("E", 0.4, [(0, 1.0), (365, 0.98)])
+        vals = m.survival_prob(np.array([500.0, 700.0]))
+        assert np.all(vals > 0.0)

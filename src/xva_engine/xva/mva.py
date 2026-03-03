@@ -10,8 +10,11 @@ class InitialMarginModel:
     Base IM model — returns zero initial margin for all paths.
     Subclass to provide a concrete IM estimate.
     """
+
     def im(self, t_days: float, V_ns_paths: np.ndarray) -> np.ndarray:
-        return np.zeros(V_ns_paths.shape[1] if V_ns_paths.ndim == 2 else len(V_ns_paths))
+        return np.zeros(
+            V_ns_paths.shape[1] if V_ns_paths.ndim == 2 else len(V_ns_paths)
+        )
 
 
 class PercentileIM(InitialMarginModel):
@@ -23,6 +26,7 @@ class PercentileIM(InitialMarginModel):
     Applied uniformly across all paths. This is equivalent to a
     volatility-scaled SIMM-like margin over the Margin Period of Risk.
     """
+
     def __init__(self, confidence: float = 0.99, mpor_days: int = 10):
         self._z = float(ndtri(confidence))
         self._mpor_factor = (mpor_days / 252.0) ** 0.5
@@ -32,12 +36,13 @@ class PercentileIM(InitialMarginModel):
         im_val = max(0.0, self._z * std_v * self._mpor_factor)
         return np.full(len(V_ns_paths), im_val)
 
+
 def compute_mva(
     grid_days: np.ndarray,
     V_ns_paths: np.ndarray,
     discount_curve: DiscountCurve,
     funding_spread: Union[float, np.ndarray],
-    im_model: InitialMarginModel = None
+    im_model: InitialMarginModel = None,
 ) -> pl.DataFrame:
     """
     Computes MVA using an IM model interface.
@@ -58,7 +63,7 @@ def compute_mva(
     mva_components = []
     for i in range(1, len(grid_days)):
         t_curr = grid_days[i]
-        t_prev = grid_days[i-1]
+        t_prev = grid_days[i - 1]
         dt_years = (t_curr - t_prev) / 365.0
 
         im_paths = im_model.im(t_curr, V_ns_paths[i, :])
@@ -68,14 +73,16 @@ def compute_mva(
 
         mva_incr = df_t * sf_t * E_im * dt_years
 
-        mva_components.append({
-            "t_end_days": t_curr,
-            "df": df_t,
-            "E_IM": E_im,
-            "funding_spread": sf_t,
-            "dt_years": dt_years,
-            "mva_contribution": mva_incr
-        })
+        mva_components.append(
+            {
+                "t_end_days": t_curr,
+                "df": df_t,
+                "E_IM": E_im,
+                "funding_spread": sf_t,
+                "dt_years": dt_years,
+                "mva_contribution": mva_incr,
+            }
+        )
 
     df = pl.DataFrame(mva_components)
     return df

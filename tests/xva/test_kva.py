@@ -10,6 +10,7 @@ Tests:
   - Scalar vs array cost_of_capital branches
   - Output type / column presence / row count
 """
+
 import numpy as np
 import pytest
 import polars as pl
@@ -29,6 +30,7 @@ def V_paths():
 
 class ConstantCapitalModel(CapitalModel):
     """Returns a fixed positive capital for every scenario."""
+
     def __init__(self, k_value: float = 100_000.0):
         self._val = k_value
 
@@ -91,7 +93,14 @@ class TestComputeKVA:
 
     def test_has_required_columns(self, V_paths, flat_curve):
         df = compute_kva(GRID, V_paths, flat_curve, 0.08)
-        for col in ("t_end_days", "df", "E_K", "cost_of_capital", "dt_years", "kva_contribution"):
+        for col in (
+            "t_end_days",
+            "df",
+            "E_K",
+            "cost_of_capital",
+            "dt_years",
+            "kva_contribution",
+        ):
             assert col in df.columns
 
     def test_row_count_equals_grid_steps(self, V_paths, flat_curve):
@@ -107,28 +116,52 @@ class TestComputeKVA:
         assert abs(df["kva_contribution"].sum()) < 1e-12
 
     def test_custom_capital_model_gives_positive_kva(self, V_paths, flat_curve):
-        df = compute_kva(GRID, V_paths, flat_curve, 0.08, capital_model=ConstantCapitalModel(100_000))
+        df = compute_kva(
+            GRID, V_paths, flat_curve, 0.08, capital_model=ConstantCapitalModel(100_000)
+        )
         assert df["kva_contribution"].sum() > 0
 
     def test_zero_cost_gives_zero_kva(self, V_paths, flat_curve):
-        df = compute_kva(GRID, V_paths, flat_curve, 0.0, capital_model=ConstantCapitalModel(100_000))
+        df = compute_kva(
+            GRID, V_paths, flat_curve, 0.0, capital_model=ConstantCapitalModel(100_000)
+        )
         assert abs(df["kva_contribution"].sum()) < 1e-12
 
     def test_scalar_cost_branch(self, V_paths, flat_curve):
-        df = compute_kva(GRID, V_paths, flat_curve, 0.05, capital_model=ConstantCapitalModel())
+        df = compute_kva(
+            GRID, V_paths, flat_curve, 0.05, capital_model=ConstantCapitalModel()
+        )
         assert (df["cost_of_capital"] == 0.05).all()
 
     def test_array_cost_branch(self, V_paths, flat_curve):
         costs = np.linspace(0.05, 0.12, len(GRID))
-        df = compute_kva(GRID, V_paths, flat_curve, costs, capital_model=ConstantCapitalModel())
-        np.testing.assert_allclose(df["cost_of_capital"].to_numpy(), costs[1:], rtol=1e-10)
+        df = compute_kva(
+            GRID, V_paths, flat_curve, costs, capital_model=ConstantCapitalModel()
+        )
+        np.testing.assert_allclose(
+            df["cost_of_capital"].to_numpy(), costs[1:], rtol=1e-10
+        )
 
     def test_array_cost_equals_scalar_cost(self, V_paths, flat_curve):
         c = 0.07
-        df_s = compute_kva(GRID, V_paths, flat_curve, c, capital_model=ConstantCapitalModel())
-        df_a = compute_kva(GRID, V_paths, flat_curve, np.full(len(GRID), c), capital_model=ConstantCapitalModel())
+        df_s = compute_kva(
+            GRID, V_paths, flat_curve, c, capital_model=ConstantCapitalModel()
+        )
+        df_a = compute_kva(
+            GRID,
+            V_paths,
+            flat_curve,
+            np.full(len(GRID), c),
+            capital_model=ConstantCapitalModel(),
+        )
         np.testing.assert_allclose(
             df_s["kva_contribution"].to_numpy(),
             df_a["kva_contribution"].to_numpy(),
-            rtol=1e-12
+            rtol=1e-12,
         )
+
+
+class TestComputeKVAValidation:
+    def test_mismatched_cost_array_raises(self, V_paths, flat_curve):
+        with pytest.raises(ValueError, match="length"):
+            compute_kva(GRID, V_paths, flat_curve, np.array([0.05, 0.06]))

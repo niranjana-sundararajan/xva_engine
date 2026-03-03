@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 from ..io.schemas import CreditCurve
 
+
 class CreditCurveModel:
     """Provides log-linear interpolation for survival probabilities."""
 
@@ -11,7 +12,9 @@ class CreditCurveModel:
 
         points_sorted = sorted(credit_data.points, key=lambda p: p.tenor)
         self.days = np.array([p.tenor for p in points_sorted], dtype=np.float64)
-        self.survival = np.array([p.survival_prob for p in points_sorted], dtype=np.float64)
+        self.survival = np.array(
+            [p.survival_prob for p in points_sorted], dtype=np.float64
+        )
 
         # log survival for interpolation
         self.log_survival = np.log(np.maximum(self.survival, 1e-12))
@@ -26,10 +29,19 @@ class CreditCurveModel:
         if self.days.size == 1:
             log_surv = np.full_like(t_arr, self.log_survival[0], dtype=np.float64)
             result = np.exp(log_surv)
-            return result if isinstance(t, np.ndarray) or (isinstance(t_arr, np.ndarray) and t_arr.ndim > 0) else float(result)
+            return (
+                result
+                if isinstance(t, np.ndarray)
+                or (isinstance(t_arr, np.ndarray) and t_arr.ndim > 0)
+                else float(result)
+            )
 
-        first_slope = (self.log_survival[1] - self.log_survival[0]) / (self.days[1] - self.days[0])
-        last_slope = (self.log_survival[-1] - self.log_survival[-2]) / (self.days[-1] - self.days[-2])
+        first_slope = (self.log_survival[1] - self.log_survival[0]) / (
+            self.days[1] - self.days[0]
+        )
+        last_slope = (self.log_survival[-1] - self.log_survival[-2]) / (
+            self.days[-1] - self.days[-2]
+        )
 
         log_surv = np.empty_like(t_arr, dtype=np.float64)
 
@@ -45,16 +57,27 @@ class CreditCurveModel:
         # Extrapolation outside bounds
         left_mask = t_arr < self.days[0]
         if np.any(left_mask):
-            log_surv[left_mask] = self.log_survival[0] + first_slope * (t_arr[left_mask] - self.days[0])
+            log_surv[left_mask] = self.log_survival[0] + first_slope * (
+                t_arr[left_mask] - self.days[0]
+            )
 
         right_mask = t_arr > self.days[-1]
         if np.any(right_mask):
-            log_surv[right_mask] = self.log_survival[-1] + last_slope * (t_arr[right_mask] - self.days[-1])
+            log_surv[right_mask] = self.log_survival[-1] + last_slope * (
+                t_arr[right_mask] - self.days[-1]
+            )
 
-        result = np.exp(log_surv)
-        return result if isinstance(t, np.ndarray) or (isinstance(t_arr, np.ndarray) and t_arr.ndim > 0) else float(result)
+        result = np.minimum(np.exp(log_surv), 1.0)
+        return (
+            result
+            if isinstance(t, np.ndarray)
+            or (isinstance(t_arr, np.ndarray) and t_arr.ndim > 0)
+            else float(result)
+        )
 
-    def marginal_pd(self, t_start: float | np.ndarray, t_end: float | np.ndarray) -> Union[float, np.ndarray]:
+    def marginal_pd(
+        self, t_start: float | np.ndarray, t_end: float | np.ndarray
+    ) -> Union[float, np.ndarray]:
         """
         Returns the marginal probability of default between t_start and t_end.
         """

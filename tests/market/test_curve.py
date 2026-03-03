@@ -7,6 +7,7 @@ Exercises DiscountCurve construction, df() interpolation at
 known pillar points and mid-points, extrapolation behaviour,
 zero_rate() correctness, and array-vectorised calls.
 """
+
 import numpy as np
 import pytest
 
@@ -17,6 +18,7 @@ from xva_engine.market.curve import DiscountCurve
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_curve(points: list[tuple[int, float]]) -> DiscountCurve:
     return DiscountCurve(
@@ -30,6 +32,7 @@ def make_curve(points: list[tuple[int, float]]) -> DiscountCurve:
 # ---------------------------------------------------------------------------
 # Construction
 # ---------------------------------------------------------------------------
+
 
 class TestDiscountCurveConstruction:
     def test_stores_currency(self, flat_curve):
@@ -47,6 +50,7 @@ class TestDiscountCurveConstruction:
 # ---------------------------------------------------------------------------
 # df()
 # ---------------------------------------------------------------------------
+
 
 class TestDiscountCurveDf:
     def test_df_at_t0_is_one(self, flat_curve):
@@ -92,6 +96,7 @@ class TestDiscountCurveDf:
 # zero_rate()
 # ---------------------------------------------------------------------------
 
+
 class TestDiscountCurveZeroRate:
     def test_zero_rate_positive(self, flat_curve):
         for t in [182, 365, 730, 1825]:
@@ -113,3 +118,16 @@ class TestDiscountCurveZeroRate:
         r = flat_curve.zero_rate(t)
         assert r.shape == (3,)
         assert np.all(np.isfinite(r))
+
+
+class TestDiscountCurveSinglePillar:
+    """Covers the single-pillar branch (lines 31-33 of curve.py)."""
+
+    def test_single_pillar_scalar(self):
+        c = make_curve([(0, 0.95)])
+        assert abs(c.df(365) - 0.95) < 1e-9
+
+    def test_single_pillar_array(self):
+        c = make_curve([(0, 0.95)])
+        vals = c.df(np.array([0.0, 365.0, 730.0]))
+        assert np.allclose(vals, 0.95)

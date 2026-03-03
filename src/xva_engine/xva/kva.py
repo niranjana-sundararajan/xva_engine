@@ -9,8 +9,11 @@ class CapitalModel:
     Base capital model — returns zero capital for all paths.
     Subclass to provide a concrete capital estimate.
     """
+
     def capital(self, t_days: float, V_ns_paths: np.ndarray) -> np.ndarray:
-        return np.zeros(V_ns_paths.shape[1] if V_ns_paths.ndim == 2 else len(V_ns_paths))
+        return np.zeros(
+            V_ns_paths.shape[1] if V_ns_paths.ndim == 2 else len(V_ns_paths)
+        )
 
 
 class EECapital(CapitalModel):
@@ -23,18 +26,20 @@ class EECapital(CapitalModel):
     ratio (default 0.08, representing 8% capital ratio against counterparty
     credit exposure).
     """
+
     def __init__(self, rwa_factor: float = 0.08):
         self.rwa_factor = rwa_factor
 
     def capital(self, t_days: float, V_ns_paths: np.ndarray) -> np.ndarray:
         return np.maximum(V_ns_paths, 0.0) * self.rwa_factor
 
+
 def compute_kva(
     grid_days: np.ndarray,
     V_ns_paths: np.ndarray,
     discount_curve: DiscountCurve,
     cost_of_capital: Union[float, np.ndarray],
-    capital_model: CapitalModel = None
+    capital_model: CapitalModel = None,
 ) -> pl.DataFrame:
     """
     Computes KVA using a Capital model interface.
@@ -55,7 +60,7 @@ def compute_kva(
     kva_components = []
     for i in range(1, len(grid_days)):
         t_curr = grid_days[i]
-        t_prev = grid_days[i-1]
+        t_prev = grid_days[i - 1]
         dt_years = (t_curr - t_prev) / 365.0
 
         k_paths = capital_model.capital(t_curr, V_ns_paths[i, :])
@@ -65,14 +70,16 @@ def compute_kva(
 
         kva_incr = df_t * c_t * E_k * dt_years
 
-        kva_components.append({
-            "t_end_days": t_curr,
-            "df": df_t,
-            "E_K": E_k,
-            "cost_of_capital": c_t,
-            "dt_years": dt_years,
-            "kva_contribution": kva_incr
-        })
+        kva_components.append(
+            {
+                "t_end_days": t_curr,
+                "df": df_t,
+                "E_K": E_k,
+                "cost_of_capital": c_t,
+                "dt_years": dt_years,
+                "kva_contribution": kva_incr,
+            }
+        )
 
     df = pl.DataFrame(kva_components)
     return df

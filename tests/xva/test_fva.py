@@ -6,6 +6,7 @@ tests/xva/test_fva.py
 Tests compute_fva() output type/columns, scalar vs array spread
 branches, sign conventions, and zero-EE edge case.
 """
+
 import numpy as np
 import pytest
 import polars as pl
@@ -36,7 +37,14 @@ class TestComputeFVAScalarSpread:
 
     def test_has_required_columns(self, sample_EE, sample_C, flat_curve):
         df = compute_fva(GRID, sample_EE, sample_C, flat_curve, 0.01)
-        for col in ("t_end_days", "df", "EE_net", "funding_spread", "dt_years", "fva_contribution"):
+        for col in (
+            "t_end_days",
+            "df",
+            "EE_net",
+            "funding_spread",
+            "dt_years",
+            "fva_contribution",
+        ):
             assert col in df.columns
 
     def test_row_count_equals_grid_steps(self, sample_EE, sample_C, flat_curve):
@@ -78,14 +86,22 @@ class TestComputeFVAArraySpread:
         spreads = np.linspace(0.005, 0.02, len(GRID))
         df = compute_fva(GRID, sample_EE, sample_C, flat_curve, spreads)
         expected = spreads[1:]
-        np.testing.assert_allclose(df["funding_spread"].to_numpy(), expected, rtol=1e-10)
+        np.testing.assert_allclose(
+            df["funding_spread"].to_numpy(), expected, rtol=1e-10
+        )
 
     def test_array_vs_equivalent_scalar_match(self, sample_EE, sample_C, flat_curve):
         spread = 0.012
         df_scalar = compute_fva(GRID, sample_EE, sample_C, flat_curve, spread)
-        df_array = compute_fva(GRID, sample_EE, sample_C, flat_curve, np.full(len(GRID), spread))
+        df_array = compute_fva(
+            GRID, sample_EE, sample_C, flat_curve, np.full(len(GRID), spread)
+        )
         np.testing.assert_allclose(
             df_scalar["fva_contribution"].to_numpy(),
             df_array["fva_contribution"].to_numpy(),
-            rtol=1e-12
+            rtol=1e-12,
         )
+
+    def test_mismatched_spread_array_raises(self, sample_EE, sample_C, flat_curve):
+        with pytest.raises(ValueError, match="length"):
+            compute_fva(GRID, sample_EE, sample_C, flat_curve, np.array([0.01, 0.02]))

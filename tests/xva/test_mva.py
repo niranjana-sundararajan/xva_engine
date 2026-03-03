@@ -10,6 +10,7 @@ Tests:
   - Scalar vs array funding_spread branches
   - Output type / column presence / row count
 """
+
 import numpy as np
 import pytest
 import polars as pl
@@ -29,6 +30,7 @@ def V_paths():
 
 class ConstantIMModel(InitialMarginModel):
     """Returns a fixed positive IM for every scenario."""
+
     def __init__(self, im_value: float = 50_000.0):
         self._val = im_value
 
@@ -81,7 +83,7 @@ class TestPercentileIM:
     def test_higher_confidence_gives_higher_im(self):
         rng = np.random.default_rng(3)
         paths = rng.normal(0, 100_000, 300)
-        im_low  = PercentileIM(confidence=0.95).im(365.0, paths)[0]
+        im_low = PercentileIM(confidence=0.95).im(365.0, paths)[0]
         im_high = PercentileIM(confidence=0.99).im(365.0, paths)[0]
         assert im_high > im_low
 
@@ -89,10 +91,12 @@ class TestPercentileIM:
         rng = np.random.default_rng(4)
         paths = rng.normal(0, 100_000, 300)
         im_short = PercentileIM(mpor_days=5).im(365.0, paths)[0]
-        im_long  = PercentileIM(mpor_days=20).im(365.0, paths)[0]
+        im_long = PercentileIM(mpor_days=20).im(365.0, paths)[0]
         assert im_long > im_short
 
-    def test_compute_mva_with_percentile_im_gives_positive_mva(self, V_paths, flat_curve):
+    def test_compute_mva_with_percentile_im_gives_positive_mva(
+        self, V_paths, flat_curve
+    ):
         df = compute_mva(GRID, V_paths, flat_curve, 0.01, im_model=PercentileIM())
         assert df["mva_contribution"].sum() > 0.0
 
@@ -104,7 +108,14 @@ class TestComputeMVA:
 
     def test_has_required_columns(self, V_paths, flat_curve):
         df = compute_mva(GRID, V_paths, flat_curve, 0.01)
-        for col in ("t_end_days", "df", "E_IM", "funding_spread", "dt_years", "mva_contribution"):
+        for col in (
+            "t_end_days",
+            "df",
+            "E_IM",
+            "funding_spread",
+            "dt_years",
+            "mva_contribution",
+        ):
             assert col in df.columns
 
     def test_row_count_equals_grid_steps(self, V_paths, flat_curve):
@@ -120,11 +131,15 @@ class TestComputeMVA:
         assert abs(df["mva_contribution"].sum()) < 1e-12
 
     def test_custom_im_model_gives_positive_mva(self, V_paths, flat_curve):
-        df = compute_mva(GRID, V_paths, flat_curve, 0.01, im_model=ConstantIMModel(50_000))
+        df = compute_mva(
+            GRID, V_paths, flat_curve, 0.01, im_model=ConstantIMModel(50_000)
+        )
         assert df["mva_contribution"].sum() > 0
 
     def test_zero_spread_gives_zero_mva_even_nonzero_im(self, V_paths, flat_curve):
-        df = compute_mva(GRID, V_paths, flat_curve, 0.0, im_model=ConstantIMModel(50_000))
+        df = compute_mva(
+            GRID, V_paths, flat_curve, 0.0, im_model=ConstantIMModel(50_000)
+        )
         assert abs(df["mva_contribution"].sum()) < 1e-12
 
     def test_scalar_spread_branch(self, V_paths, flat_curve):
@@ -134,14 +149,24 @@ class TestComputeMVA:
     def test_array_spread_branch(self, V_paths, flat_curve):
         spreads = np.linspace(0.005, 0.02, len(GRID))
         df = compute_mva(GRID, V_paths, flat_curve, spreads, im_model=ConstantIMModel())
-        np.testing.assert_allclose(df["funding_spread"].to_numpy(), spreads[1:], rtol=1e-10)
+        np.testing.assert_allclose(
+            df["funding_spread"].to_numpy(), spreads[1:], rtol=1e-10
+        )
 
     def test_array_spread_equals_scalar_spread(self, V_paths, flat_curve):
         s = 0.012
         df_s = compute_mva(GRID, V_paths, flat_curve, s, im_model=ConstantIMModel())
-        df_a = compute_mva(GRID, V_paths, flat_curve, np.full(len(GRID), s), im_model=ConstantIMModel())
+        df_a = compute_mva(
+            GRID, V_paths, flat_curve, np.full(len(GRID), s), im_model=ConstantIMModel()
+        )
         np.testing.assert_allclose(
             df_s["mva_contribution"].to_numpy(),
             df_a["mva_contribution"].to_numpy(),
-            rtol=1e-12
+            rtol=1e-12,
         )
+
+
+class TestComputeMVAValidation:
+    def test_mismatched_spread_array_raises(self, V_paths, flat_curve):
+        with pytest.raises(ValueError, match="length"):
+            compute_mva(GRID, V_paths, flat_curve, np.array([0.01, 0.02]))
