@@ -1,0 +1,29 @@
+{
+    "currency": "USD",
+    "points": [
+        {
+            "tenor": 0,
+            "discount_factor": 1.0000
+        },
+        {
+            "tenor": 182,
+            "discount_factor": 0.9880
+        },
+        {
+            "tenor": 365,
+            "discount_factor": 0.9750
+        },
+        {
+            "tenor": 730,
+            "discount_factor": 0.9500
+        },
+        {
+            "tenor": 1095,
+            "discount_factor": 0.9260
+        },
+        {
+            "tenor": 1825,
+            "discount_factor": 0.8800
+        }
+    ]
+}
